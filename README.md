@@ -1,2 +1,3 @@
 # scripts
-自己使用的一些脚本备份
+agentpool.py  获取ip代理池的信息
+sendmail.py   发送邮件脚本
