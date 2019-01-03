@@ -4,4 +4,4 @@ agentpool.py  获取ip代理池信息.
 sendmail.py   发送邮件脚本.
 
 1.add jenkins testing.
-1.add jenkins testing.
+2.add jenkins testing.
