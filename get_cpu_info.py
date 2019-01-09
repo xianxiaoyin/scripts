@@ -9,7 +9,7 @@ def get_cpu_percent():
     for pid in pids:
         p = psutil.Process(pid)
         if 'qemu-system' in p.name():
-            print(p.name())
+            #print(p.name())
             while n < 50:
                 numlist.append(p.cpu_percent(interval=1)/psutil.cpu_count(logical=True))
                 n += 1
