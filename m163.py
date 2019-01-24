@@ -7,7 +7,7 @@ import threading
 import json
 dssa
 class Get_list_id():
-    def __init__(self):
+    def __init__(self):sfaf
         self.urls={
             '华语':'http://music.163.com/discover/playlist/?order=hot&cat=%E5%8D%8E%E8%AF%AD&limit=35&offset=',
             '欧美':'http://music.163.com/discover/playlist/?order=hot&cat=%E6%AC%A7%E7%BE%8E&limit=35&offset=',
