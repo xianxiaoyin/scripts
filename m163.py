@@ -66,3 +66,4 @@ if __name__=='__main__':
                 continue
             file_d.write(str(data)+'\n')
             print(id)
+print(1)
