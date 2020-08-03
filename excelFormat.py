@@ -14,6 +14,11 @@ def readExcel(filename):
     return data
 
 
+# 获取当前时间的时分秒 ==》》11:22:33    112233 
+
+def getCurDate():
+    return time.strftime('%H%M%S',time.localtime(time.time()))
+
 # 填充数据
 def fill(data):
     global tmp
@@ -197,7 +202,7 @@ def extracData(orgcode, datadict, dict1, dict2):
             tDict["ORG_CODE"] = orgcode
             tDict["DR"] = 0
             tDict["DATA_VERSION"] = 1
-            tDict["DATA_NO"] = hash('{}{}{}{}{}'.format(tmp, k, tmp1, tmp2, orgcode))
+            tDict["DATA_NO"] = '{}{}{}'.format(orgcode, getCurDate(), tmp)
             gList.append(tDict)
     return gList
 
@@ -239,7 +244,7 @@ def genFormat(orgcode, codedict):
             "ORG_CODE": orgcode,
             "DR": 0,
             "DATA_VERSION": 1,
-            "DATA_NO": hash('{}{}{}'.format(k, v, orgcode)),
+            "DATA_NO": '{}{}{}'.format(orgcode, getCurDate(), k),
         }
         tmpList.append(tmpDict)
     return tmpList
@@ -289,12 +294,7 @@ def main():
     #     print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(data)))
     #     time.sleep(0.5)
     #     break
-    #   ===========================================风险请求报文===============================================
-    #  for i in extracData(orgcode, gddata, riskData, safeData):
-        #  print(json.dumps(i))
-    #   ===========================================工器具数据格式===============================================
     '''
-    # print(code1)
     for k,v in toolData.items():
         toolJson = {
             "boName":"BO_EU_DEF_TOOL",
@@ -305,13 +305,14 @@ def main():
               "ORG_CODE":orgcode,
               "DATA_VERSION":1,
               "DR":0,
-              "DATA_NO":orgcode + v}
+              "DATA_NO":orgcode + getCurDate() + v}
             ]
         }
         print(json.dumps(toolJson))
         print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(toolJson)))
         time.sleep(0.5)
         break
+    
     for k,v in materielData.items():
         materielJson = {
             "boName":"BO_EU_DEF_MATERIEL",
@@ -322,26 +323,23 @@ def main():
               "ORG_CODE":orgcode,
               "DATA_VERSION":1,
               "DR":0,
-              "DATA_NO":orgcode + v}
+              "DATA_NO":orgcode + getCurDate() + v}
             ]
         }
         print(json.dumps(materielJson))
         print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(materielJson)))
         time.sleep(0.5)
         break
-    '''
-    for i in extracData(orgcode, gendata, riskData, safeData):
-        # print(i)
-        riskJson = {
-            "boName":"BO_EU_DEF_RISK",
-            "uid:":"admin",
-            "recordDatas": [i]
-        }
-        print(riskJson)
-        print(json.dumps(riskJson))
+    # for i in extracData(orgcode, gendata, riskData, safeData):
+        # riskJson = {
+        #     "boName":"BO_EU_DEF_RISK",
+        #     "uid:":"admin",
+        #     "recordDatas": [i]
+        # }
+        # print(riskJson)
+        # print(json.dumps(riskJson))
         # print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(riskJson)))
         # time.sleep(0.5)
-    '''
     for k,v in safeData.items():
         safeJson = {
             "boName":"BO_EU_DEF_SAFETHING",
@@ -352,7 +350,7 @@ def main():
               "ORG_CODE":orgcode,
               "DATA_VERSION":1,
               "DR":0,
-              "DATA_NO":orgcode + v,
+              "DATA_NO":orgcode + getCurDate() + v,
             "BLN_IS_CONFIRM": 1,
             "BLN_IS_DELETE": 1,
             "BLN_IS_UPLOAD_FILE": 1,
@@ -365,12 +363,7 @@ def main():
         print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(safeJson)))
         time.sleep(0.5)
         break
-    #   ===========================================物料数据格式===============================================
-    # for ii in code2:
-    #     print(json.dumps(ii))
-    #   ===========================================安全措施数据格式===============================================
-    # for iii in code4:
-    #     print(json.dumps(iii))
+
 '''
 if __name__ == "__main__":
     print(datetime.datetime.now())
