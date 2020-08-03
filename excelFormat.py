@@ -83,7 +83,7 @@ def dictToJson(datadict, code1, code2, code3, code4):
         tmpDict["jsaName"] = ''.join(v[1].split())
         tmpDict["orgCode"] = v[2]
         tmpDict["relaMaterielCode"] = '|'.join(
-            [code2[i] if i != "/" else "" for i in v[3].split('、')])
+            [code2[i] if i != "/" else "" for i in v[3].split('、') if i])
         tmpDict["relaMaterielName"] = v[3] if v[3] != "/" else ""
         tmpDict["relaToolCode"] = '|'.join([code1[i] for i in v[5].split('、') if i])
         tmpDict["relaToolName"] = '|'.join(v[6].split('、'))
@@ -110,19 +110,19 @@ def dictToJson(datadict, code1, code2, code3, code4):
 
 
 # 生成编码字典  -->处理字典
-def generateDictCode(datadict, index):
+def generateDictCode(datadict, index, orgcode):
     tmpList = []
     tmpDict = {}
     for v in datadict.values():
         tmpList += [i if i != "/" else "" for i in v[index].split("、")]
     for index, i in enumerate([i for i in set(tmpList) if i], 1):
         k = str(index).zfill(8)
-        tmpDict[i] = k
+        tmpDict[i] = orgcode + k
     return tmpDict
 
 
 # 生成编码字典  --> 处理字典中的列表 relaRiskName
-def generateDictCode2(datadict, fieldname):
+def generateDictCode2(datadict, fieldname, orgcode):
     tmpList = []
     tmpDict = {}
     for v in datadict.values():
@@ -132,7 +132,7 @@ def generateDictCode2(datadict, fieldname):
                         for i in str(i[fieldname]).split('\n')]
     for index, i in enumerate([i for i in set(tmpList) if i], 1):
         k = str(index).zfill(8)
-        tmpDict[i] = k
+        tmpDict[i] = orgcode + k
     return tmpDict
 
 
@@ -189,22 +189,25 @@ def extracData(orgcode, datadict, dict1, dict2):
                 if kk:
                     tmpDict[kk] = [re.sub(r'\d|\.', '', i) for i in relaSafeDesc.split("\n") if "{}.".format(index) in i]
                     tmpList.append(tmpDict)
-    for i in tmpList:
-        for k, v in i.items():
-            tDict = {}
-            tmp = twoList2(k, dict1)
-            tDict["RISK_CODE"] = tmp
-            tDict["RISK_NAME"] = k
-            tmp1 = twoList(v, dict2)
-            tDict["RELA_SAFE_CODE"] = tmp1
-            tmp2 = '|'.join([i for i in v])
-            tDict["RELA_SAFE_DESC"] = tmp2
-            tDict["ORG_CODE"] = orgcode
-            tDict["DR"] = 0
-            tDict["DATA_VERSION"] = 1
-            tDict["DATA_NO"] = '{}{}{}'.format(orgcode, getCurDate(), tmp)
-            gList.append(tDict)
-    return gList
+    for i in set(tmpList):
+      print(i)
+      for k, v in i.items():
+          tDict = {}
+          tmp = twoList2(k, dict1)
+          tDict["RISK_CODE"] = tmp
+          tDict["RISK_NAME"] = k
+          tmp1 = twoList(v, dict2)
+          tDict["RELA_SAFE_CODE"] = tmp1
+          tmp2 = '|'.join([i for i in v])
+          tDict["RELA_SAFE_DESC"] = tmp2
+          tDict["ORG_CODE"] = orgcode
+          tDict["DR"] = 0
+          tDict["DATA_VERSION"] = 1
+          tDict["DATA_NO"] = '{}{}'.format(getCurDate(), tmp)
+          gList.append(tDict)
+    
+
+    return [dict(t) for t in set([tuple(d.items()) for d in gList])]
 
 
 # 扫描文件 检查文件格式
@@ -244,14 +247,14 @@ def genFormat(orgcode, codedict):
             "ORG_CODE": orgcode,
             "DR": 0,
             "DATA_VERSION": 1,
-            "DATA_NO": '{}{}{}'.format(orgcode, getCurDate(), k),
+            "DATA_NO": '{}{}'.format(getCurDate(), k),
         }
         tmpList.append(tmpDict)
     return tmpList
 
 
 def main():
-    path = r"D:\learn\scripts"
+    path = r"C:\Users\shil002\Desktop\ticket_env\1508"
     orgcode = fastdir(path)
     gendata = []
     fileList = scanDir(path)
@@ -262,22 +265,18 @@ def main():
     gddata = generateDict(gendata, orgcode)
 
     # 工器具数据格式
-    toolData = generateDictCode(gddata, 6)
+    toolData = generateDictCode(gddata, 6, orgcode)
     # 物料数据格式  ---->>>>数据源有问题需要重新处理
-    materielData = generateDictCode(gddata, 4)
+    materielData = generateDictCode(gddata, 4, orgcode)
 
     # 安全措施数据格式
-    riskData = generateDictCode2(gddata, "relaRiskName")
-    safeData = generateDictCode2(gddata, "relaSafeDesc")
+    riskData = generateDictCode2(gddata, "relaRiskName", orgcode)
+    safeData = generateDictCode2(gddata, "relaSafeDesc", orgcode)
 
     gdd = dictToJson(gddata, toolData, materielData, riskData, safeData)
 
     #   ===========================================最大的那个json===============================================
-    # for i in gdd:
-        
-    #     print(i)
-    #     print(json.dumps(i))
-    #     break
+
     
     # l = len(gdd)
     # for i in range(int(l/10)+1):
@@ -294,7 +293,13 @@ def main():
     #     print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(data)))
     #     time.sleep(0.5)
     #     break
+
     '''
+    #  ------------------------------1-------------------------------
+    for i in gdd:
+        print(post(r'http://127.0.0.1:8080/bd/jsa/template/save', json.dumps(i)))
+
+ #  ------------------------------2-------------------------------
     for k,v in toolData.items():
         toolJson = {
             "boName":"BO_EU_DEF_TOOL",
@@ -305,14 +310,12 @@ def main():
               "ORG_CODE":orgcode,
               "DATA_VERSION":1,
               "DR":0,
-              "DATA_NO":orgcode + getCurDate() + v}
+              "DATA_NO": getCurDate() + v}
             ]
         }
-        print(json.dumps(toolJson))
         print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(toolJson)))
-        time.sleep(0.5)
-        break
-    
+
+     #  ------------------------------3-------------------------------
     for k,v in materielData.items():
         materielJson = {
             "boName":"BO_EU_DEF_MATERIEL",
@@ -323,23 +326,24 @@ def main():
               "ORG_CODE":orgcode,
               "DATA_VERSION":1,
               "DR":0,
-              "DATA_NO":orgcode + getCurDate() + v}
+              "DATA_NO": getCurDate() + v}
             ]
         }
-        print(json.dumps(materielJson))
         print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(materielJson)))
-        time.sleep(0.5)
+    '''
+    #  ------------------------------4------------------------------- 
+    print(len(extracData(orgcode, gendata, riskData, safeData)))
+    for i in extracData(orgcode, gendata, riskData, safeData):
+        riskJson = {
+            "boName":"BO_EU_DEF_RISK",
+            "uid:":"admin",
+            "recordDatas": [i]
+        }
+        print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(riskJson)))
         break
-    # for i in extracData(orgcode, gendata, riskData, safeData):
-        # riskJson = {
-        #     "boName":"BO_EU_DEF_RISK",
-        #     "uid:":"admin",
-        #     "recordDatas": [i]
-        # }
-        # print(riskJson)
-        # print(json.dumps(riskJson))
-        # print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(riskJson)))
-        # time.sleep(0.5)
+    '''    
+  
+  #  ------------------------------5-------------------------------
     for k,v in safeData.items():
         safeJson = {
             "boName":"BO_EU_DEF_SAFETHING",
@@ -350,7 +354,7 @@ def main():
               "ORG_CODE":orgcode,
               "DATA_VERSION":1,
               "DR":0,
-              "DATA_NO":orgcode + getCurDate() + v,
+              "DATA_NO": getCurDate() + v,
             "BLN_IS_CONFIRM": 1,
             "BLN_IS_DELETE": 1,
             "BLN_IS_UPLOAD_FILE": 1,
@@ -359,15 +363,14 @@ def main():
             "BLN_IS_SIGN": 1}
             ]
         }
-        print(json.dumps(safeJson))
         print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(safeJson)))
-        time.sleep(0.5)
-        break
-
 '''
+
+
 if __name__ == "__main__":
     print(datetime.datetime.now())
     # profile.run("main()")
     # checkFileFormat(r"D:\learn\tmp\包化")
     main()
     print(datetime.datetime.now())
+ 
