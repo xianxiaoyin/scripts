@@ -72,7 +72,6 @@ def generateDict(datalist, orgcode):
 # 转换成 json
 def dictToJson(datadict, code1, code2, code3, code4):
     tmpList = []
-    print(code2)
     for v in datadict.values():
         tmpDict = {}
         tmpDict["jsaCode"] = v[0]
@@ -169,22 +168,22 @@ def twoList2(tlist, dict):
 def extracData(orgcode, datadict, dict1, dict2):
     tmpList = []
     gList = []
-    for v in datadict.values():
-        for i in v[-1]:
-            tmpDict = {}
-            relaRiskName = i["relaRiskName"].split("\n")
-            relaSafeDesc = i["relaSafeDesc"].split("\n")
-            if len(relaRiskName) < 2:
-                k = re.sub(r'\d|\.', '', relaRiskName[0])
-                if k:
-                    tmpDict[k] = [re.sub(r'\d|\.', '', i) for i in relaSafeDesc if i]
+    for v in datadict:
+        tmpDict = {}
+        relaRiskName = v[8]
+        relaSafeDesc = v[9]
+        len_relaRiskName = relaRiskName.split("\n")
+        if  len(len_relaRiskName) < 2:
+            k = re.sub(r'\d|\.', '', relaRiskName)
+            if k:
+                tmpDict[k] = [re.sub(r'\d|\.', '', i) for i in relaSafeDesc.split("\n") if i]
+                tmpList.append(tmpDict)
+        else:
+            for index, data in enumerate([i for i in relaRiskName.split("\n") if i], 1):
+                kk = re.sub(r'\d|\.', '', data)
+                if kk:
+                    tmpDict[kk] = [re.sub(r'\d|\.', '', i) for i in relaSafeDesc.split("\n") if "{}.".format(index) in i]
                     tmpList.append(tmpDict)
-            else:
-                for index, data in enumerate(relaRiskName, 1):
-                    kk = re.sub(r'\d|\.', '', data)
-                    if kk:
-                        tmpDict[kk] = [re.sub(r'\d|\.', '', i) for i in relaSafeDesc if "{}.".format(index) in i]
-                        tmpList.append(tmpDict)
     for i in tmpList:
         for k, v in i.items():
             tDict = {}
@@ -331,18 +330,17 @@ def main():
         time.sleep(0.5)
         break
     '''
-    for i in extracData(orgcode, gddata, riskData, safeData):
-        print(i)
-        print(json.dumps(i))
+    for i in extracData(orgcode, gendata, riskData, safeData):
+        # print(i)
         riskJson = {
             "boName":"BO_EU_DEF_RISK",
             "uid:":"admin",
             "recordDatas": [i]
         }
+        print(riskJson)
         print(json.dumps(riskJson))
         # print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(riskJson)))
         # time.sleep(0.5)
-        break
     '''
     for k,v in safeData.items():
         safeJson = {
