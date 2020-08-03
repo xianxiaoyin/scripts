@@ -28,7 +28,6 @@ def fill(data):
                 continue
         except Exception:
             print(line)
-            # return False
         tmpLine = [i.value for i in line]
         if tmpLine[0]:
             tmp = tmpLine[0]
@@ -67,9 +66,6 @@ def generateDict(datalist, orgcode):
                 "relaSafeDesc": i[9]
             }
             dataDict[i[0]][-1].append(tmpDict2)
-    # for k,v in dataDict.items():
-    #     print(k)
-    #     print(v)
     return dataDict
 
 
@@ -92,11 +88,10 @@ def dictToJson(datadict, code1, code2, code3, code4):
             tmpDict["workAddress"] = v[8]
             tmpDict["workDesc"] = '|'.join(v[9].split('、'))
         except Exception:
-            pass
+            print("JSON 转换错误请检查数据！！！")
 
         # 替换 relaRiskCode，relaSafeCode  现在是个列表
         for i in v[-1]:
-            # print(i["relaRiskName"])
             i["relaRiskCode"] = '|'.join(
                 [code3[j] for j in (re.sub(r'\d|\.', '', i) for i in i["relaRiskName"].split('\n')) if j])
             i["relaRiskName"] = '|'.join(
@@ -119,11 +114,6 @@ def generateDictCode(datadict, index):
     tmpDict = {}
     for v in datadict.values():
         tmpList += [i if i != "/" else "" for i in v[index].split("、")]
-        # try:
-        #     tmpList += [i if i != "/" else ""for i in v[index].split("、")]
-        # except Exception:
-        #     pass
-
     for index, i in enumerate([i for i in set(tmpList) if i], 1):
         k = str(index).zfill(8)
         tmpDict[i] = k
@@ -135,7 +125,6 @@ def generateDictCode2(datadict, fieldname):
     tmpList = []
     tmpDict = {}
     for v in datadict.values():
-        # print(v[-1])
         lastdata = v[-1]
         for i in lastdata:
             tmpList += [re.sub(r'\d|\.', '', i)
@@ -143,10 +132,6 @@ def generateDictCode2(datadict, fieldname):
     for index, i in enumerate([i for i in set(tmpList) if i], 1):
         k = str(index).zfill(8)
         tmpDict[i] = k
-    # for k,v in tmpDict.items():
-    #     print(k)
-    #     print(v)
-
     return tmpDict
 
 
@@ -191,8 +176,6 @@ def extracData(orgcode, datadict, dict1, dict2):
             tmpDict = {}
             relaRiskName = i["relaRiskName"].split("\n")
             relaSafeDesc = i["relaSafeDesc"].split("\n")
-            # print(relaRiskName)
-            # print(relaSafeDesc)
             if len(relaRiskName) < 2:
                 k = re.sub(r'\d|\.', '', relaRiskName[0])
                 if k:
