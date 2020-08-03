@@ -285,18 +285,19 @@ def main():
 
     #   ===========================================最大的那个json===============================================
     l = len(gdd)
-    for i in range(int(l/10)):
+    for i in range(int(l/10)+1):
         dataList = json.dumps(gdd[i*10:(i*10)+10])
+        print(dataList)
         data = {
             "boName": "BO_EU_DEF_TOOL",
             "uid:": "admin",
             "recordDatas": dataList,
         }
-        post(r'http://127.0.0.1:8080/bd/jsa/batch/save', data)
-
+        print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', data))
+        time.sleep(0.5)
     #   ===========================================风险请求报文===============================================
     # for i in extracData(orgcode, gddata, code3, code4):
-        # print(json.dumps(i))
+    #     print(json.dumps(i))
     #   ===========================================工器具数据格式===============================================
     # for i in code1:
     #     print(json.dumps(i))
