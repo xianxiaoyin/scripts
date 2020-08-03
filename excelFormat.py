@@ -72,23 +72,20 @@ def generateDict(datalist, orgcode):
 # 转换成 json
 def dictToJson(datadict, code1, code2, code3, code4):
     tmpList = []
+    print(code2)
     for v in datadict.values():
-        try:
-            tmpDict = {}
-            tmpDict["jsaCode"] = v[0]
-            tmpDict["jsaName"] = ''.join(v[1].split())
-            tmpDict["orgCode"] = v[2]
-            tmpDict["relaMaterielCode"] = '|'.join(
-                [code1[i] if i != "/" else "" for i in v[3].split('、')])
-            tmpDict["relaMaterielName"] = v[3] if v[3] != "/" else ""
-            tmpDict["relaToolCode"] = '|'.join(
-                [code2[i] for i in v[5].split('、')])
-            tmpDict["relaToolName"] = '|'.join(v[6].split('、'))
-            tmpDict["workplace"] = v[7]
-            tmpDict["workAddress"] = v[8]
-            tmpDict["workDesc"] = '|'.join(v[9].split('、'))
-        except Exception:
-            print("JSON 转换错误请检查数据！！！")
+        tmpDict = {}
+        tmpDict["jsaCode"] = v[0]
+        tmpDict["jsaName"] = ''.join(v[1].split())
+        tmpDict["orgCode"] = v[2]
+        tmpDict["relaMaterielCode"] = '|'.join(
+            [code2[i] if i != "/" else "" for i in v[3].split('、')])
+        tmpDict["relaMaterielName"] = v[3] if v[3] != "/" else ""
+        tmpDict["relaToolCode"] = '|'.join([code1[i] for i in v[5].split('、') if i])
+        tmpDict["relaToolName"] = '|'.join(v[6].split('、'))
+        tmpDict["workplace"] = v[7]
+        tmpDict["workAddress"] = v[8]
+        tmpDict["workDesc"] = '|'.join(v[9].split('、'))
 
         # 替换 relaRiskCode，relaSafeCode  现在是个列表
         for i in v[-1]:
@@ -153,6 +150,7 @@ def twoList(tlist, dict):
     tmp1 = [i.split("|") for i in tlist]
     for i in tmp1:
         for j in i:
+          if j:
             tmpList.append(dict[j])
     return "|".join(tmpList)
 
@@ -217,7 +215,11 @@ def checkFileFormat(path):
 
 # 请求数据
 def post(url, data):
-    http = httpx.post(url=url, data=data)
+    headers = {
+                "Content-Type":  "application/json"
+            }
+    http = httpx.post(url=url, data=data, headers=headers)
+    print(http.text)
     return http.status_code
 
 
@@ -245,7 +247,7 @@ def genFormat(orgcode, codedict):
 
 
 def main():
-    path = r"C:\Users\qinjunfx\OneDrive - Intel Corporation\Desktop\works\scripts"
+    path = r"D:\learn\scripts"
     orgcode = fastdir(path)
     gendata = []
     fileList = scanDir(path)
@@ -256,41 +258,122 @@ def main():
     gddata = generateDict(gendata, orgcode)
 
     # 工器具数据格式
-    code1 = generateDictCode(gddata, 6)
+    toolData = generateDictCode(gddata, 6)
     # 物料数据格式  ---->>>>数据源有问题需要重新处理
-    code2 = generateDictCode(gddata, 4)
+    materielData = generateDictCode(gddata, 4)
 
     # 安全措施数据格式
-    code3 = generateDictCode2(gddata, "relaRiskName")
-    code4 = generateDictCode2(gddata, "relaSafeDesc")
+    riskData = generateDictCode2(gddata, "relaRiskName")
+    safeData = generateDictCode2(gddata, "relaSafeDesc")
 
-    gdd = dictToJson(gddata, code1, code2, code3, code4)
+    gdd = dictToJson(gddata, toolData, materielData, riskData, safeData)
 
     #   ===========================================最大的那个json===============================================
-    l = len(gdd)
-    for i in range(int(l/10)+1):
-        dataList = json.dumps(gdd[i*10:(i*10)+10])
-        print(dataList)
-        data = {
-            "boName": "BO_EU_DEF_TOOL",
-            "uid:": "admin",
-            "recordDatas": dataList,
-        }
-        print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', data))
-        time.sleep(0.5)
+    # for i in gdd:
+        
+    #     print(i)
+    #     print(json.dumps(i))
+    #     break
+    
+    # l = len(gdd)
+    # for i in range(int(l/10)+1):
+    #     dataList = json.dumps(gdd[i*10:(i*10)+10])
+    #     print(dataList)
+
+        
+    #     data = {
+    #         "boName": "BO_EU_DEF_TOOL",
+    #         "uid:": "admin",
+    #         "recordDatas": dataList
+    #     }
+    #     print(data)
+    #     print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(data)))
+    #     time.sleep(0.5)
+    #     break
     #   ===========================================风险请求报文===============================================
-    # for i in extracData(orgcode, gddata, code3, code4):
-    #     print(json.dumps(i))
+    #  for i in extracData(orgcode, gddata, riskData, safeData):
+        #  print(json.dumps(i))
     #   ===========================================工器具数据格式===============================================
-    # for i in code1:
-    #     print(json.dumps(i))
+    '''
+    # print(code1)
+    for k,v in toolData.items():
+        toolJson = {
+            "boName":"BO_EU_DEF_TOOL",
+            "uid:":"admin",
+            "recordDatas": [
+              {"TOOL_CODE": v,
+              "TOOL_NAME":k,
+              "ORG_CODE":orgcode,
+              "DATA_VERSION":1,
+              "DR":0,
+              "DATA_NO":orgcode + v}
+            ]
+        }
+        print(json.dumps(toolJson))
+        print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(toolJson)))
+        time.sleep(0.5)
+        break
+    for k,v in materielData.items():
+        materielJson = {
+            "boName":"BO_EU_DEF_MATERIEL",
+            "uid:":"admin",
+            "recordDatas": [
+              {"MATERIEL_CODE": v,
+              "MATERIEL_NAME":k,
+              "ORG_CODE":orgcode,
+              "DATA_VERSION":1,
+              "DR":0,
+              "DATA_NO":orgcode + v}
+            ]
+        }
+        print(json.dumps(materielJson))
+        print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(materielJson)))
+        time.sleep(0.5)
+        break
+    '''
+    for i in extracData(orgcode, gddata, riskData, safeData):
+        print(i)
+        print(json.dumps(i))
+        riskJson = {
+            "boName":"BO_EU_DEF_RISK",
+            "uid:":"admin",
+            "recordDatas": [i]
+        }
+        print(json.dumps(riskJson))
+        # print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(riskJson)))
+        # time.sleep(0.5)
+        break
+    '''
+    for k,v in safeData.items():
+        safeJson = {
+            "boName":"BO_EU_DEF_SAFETHING",
+            "uid:":"admin",
+            "recordDatas": [
+              {"SAFE_CODE": v,
+              "SAFE_DESC":k,
+              "ORG_CODE":orgcode,
+              "DATA_VERSION":1,
+              "DR":0,
+              "DATA_NO":orgcode + v,
+            "BLN_IS_CONFIRM": 1,
+            "BLN_IS_DELETE": 1,
+            "BLN_IS_UPLOAD_FILE": 1,
+            "BLN_IS_PHOTOGRAPH": 1,
+            "BLN_IS_FILM_VIDEO": 1,
+            "BLN_IS_SIGN": 1}
+            ]
+        }
+        print(json.dumps(safeJson))
+        print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(safeJson)))
+        time.sleep(0.5)
+        break
     #   ===========================================物料数据格式===============================================
     # for ii in code2:
     #     print(json.dumps(ii))
     #   ===========================================安全措施数据格式===============================================
     # for iii in code4:
     #     print(json.dumps(iii))
-
+'''
 if __name__ == "__main__":
     print(datetime.datetime.now())
     # profile.run("main()")
