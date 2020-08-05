@@ -197,14 +197,6 @@ def extracData(orgcode, datadict, dict1, dict2):
         gList.append(tDict)
     return gList
 
-# 扫描文件 检查文件格式
-def checkFileFormat(path):
-    fileList = scanDir(path)
-    for filename in fileList:
-        data = readExcel(filename)
-        gendata = fill(data)
-        if not gendata:
-            print('大哥呀文件格式好像有问题啊，检查下吧！！！ --->>{}'.format(filename))
 
 
 # 请求数据
@@ -238,6 +230,20 @@ def genFormat(orgcode, codedict):
         }
         tmpList.append(tmpDict)
     return tmpList
+
+
+# 检查文件格式是否满足需求
+def checkFileFormat(path):
+    fileList = scanDir(path)
+    for filename in fileList:
+        data = readExcel(filename)
+        for line in [i for i in data.get_rows()][:3]:
+            l = line[0].value
+            if "编码" in l or "code" in l or "导入须知" in l:
+                break
+            else:
+                print('大哥呀文件格式好像有问题啊，检查下吧！！！ --->>{}'.format(filename))
+                break
 
 
 def main():
@@ -351,8 +357,7 @@ def main():
 
 if __name__ == "__main__":
     print(datetime.datetime.now())
-    # profile.run("main()")
-    # checkFileFormat(r"D:\learn\tmp\包化")
-    main()
+    checkFileFormat(r"C:\Users\xx\Desktop\1508")
+    # main()
     print(datetime.datetime.now())
  
