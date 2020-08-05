@@ -241,7 +241,7 @@ def genFormat(orgcode, codedict):
 
 
 def main():
-    path = r"C:\Users\qinjunfx\OneDrive - Intel Corporation\Desktop\works\scripts"
+    path = r"C:\Users\xx\Desktop\works\scripts"
     orgcode = fastdir(path)
     gendata = []
     fileList = scanDir(path)
