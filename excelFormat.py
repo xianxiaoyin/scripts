@@ -7,6 +7,8 @@ import datetime
 import httpx
 import time
 
+flag =  r"^\d\.\d\.|^\d\.\d|^\d\.|^\d"
+
 # 读取.xls文件
 def readExcel(filename):
     f = xlrd.open_workbook(filename=filename)
@@ -90,17 +92,14 @@ def dictToJson(datadict, code1, code2, code3, code4):
         tmpDict["workplace"] = v[7]
         tmpDict["workAddress"] = v[8]
         tmpDict["workDesc"] = '|'.join(v[9].split('、'))
+        tmpDict["dr"] = 0
 
         # 替换 relaRiskCode，relaSafeCode  现在是个列表
         for i in v[-1]:
-            i["relaRiskCode"] = '|'.join(
-                [code3[j] for j in (re.sub(r'\d|\.', '', i) for i in i["relaRiskName"].split('\n')) if j])
-            i["relaRiskName"] = '|'.join(
-                [re.sub(r'\d|\.', '', i) for i in i["relaRiskName"].split('\n')])
-            i["relaSafeCode"] = '|'.join([code4[j] for j in (
-                re.sub(r'\d|\.', '', i) for i in i["relaSafeDesc"].split('\n')) if j])
-            i["relaSafeDesc"] = '|'.join(
-                [re.sub(r'\d|\.', '', i) for i in i["relaSafeDesc"].split('\n')])
+            i["relaRiskCode"] = '|'.join([code3[j.strip()] for j in (re.sub(flag, '', i) for i in re.split(r"\s", i["relaRiskName"])) if j.strip()])
+            i["relaRiskName"] = i["relaRiskName"]
+            i["relaSafeCode"] = '|'.join([code4[j.strip()] for j in ( re.sub(flag, '', i) for i in re.split(r"\s", i["relaSafeDesc"])) if j.strip()])
+            i["relaSafeDesc"] = i["relaSafeDesc"]
 
         tmpDict["workStepDtoList"] = v[-1]
         tmpList.append(tmpDict)
@@ -128,8 +127,11 @@ def generateDictCode2(datadict, fieldname, orgcode):
     for v in datadict.values():
         lastdata = v[-1]
         for i in lastdata:
-            tmpList += [re.sub(r'\d|\.', '', i)
-                        for i in str(i[fieldname]).split('\n')]
+          tmpList += [re.sub(flag, '', i.strip())
+                        for i in re.split(r'\s', str(i[fieldname]))]
+          #tmpList += [re.sub(r'^\d.\d\.|\d.\d|\d\.', '', i.strip())
+          #            for i in re.split(r'\s', str(i[fieldname]))]
+            
     for index, i in enumerate([i for i in set(tmpList) if i], 1):
         k = str(index).zfill(8)
         tmpDict[i] = orgcode + k
@@ -146,78 +148,55 @@ def scanDir(path):
     return tmpList
 
 
-# [[]]
-# 双列表数据处理
-
-def twoList(tlist, dict):
-    tmpList = []
-    tmp1 = [i.split("|") for i in tlist]
-    for i in tmp1:
-        for j in i:
-          if j:
-            tmpList.append(dict[j])
-    return "|".join(tmpList)
-
-# 准备工具时被绊倒摔伤|准备工器具时手被挤伤，脚被砸伤|车辆伤害
-
-def twoList2(tlist, dict):
-    tmpList = []
-    for i in tlist.split("|"):
-        if i:
-            tmpList.append(dict[i])
-    return "|".join(tmpList)
-
-
-
 # 处理风险数据关系
+'''
+ 要处理的数据格式大概是
+            ["1.xxxxx", "1.1xxxxx\n1.2xxxxx\n1.3xxxxxx"]
+            ["1.xxxxx"\n2.xxxx, "1.1xxxxx\n1.2xxxxx\n2.1xxxxx\n2.2xxxxx\n2.3xxxxx"]
+
+'''
+
 def extracData(orgcode, datadict, dict1, dict2):
-    tmpList = []
+    returnDict = {}
     gList = []
+    tmpDict = {}
     for v in datadict:
-        tmpDict = {}
         relaRiskName = v[8]
         relaSafeDesc = v[9]
-        len_relaRiskName = relaRiskName.split("\n")
+        len_relaRiskName = re.split(r"\s",relaRiskName)
+        value = '|'.join([re.sub(flag, '', i) for i in re.split(r"\s",relaSafeDesc) if i]) + "|"
         if  len(len_relaRiskName) < 2:
-            k = re.sub(r'\d|\.', '', relaRiskName)
-            if k:
-                tmpDict[k] = [re.sub(r'\d|\.', '', i) for i in relaSafeDesc.split("\n") if i]
-                tmpList.append(tmpDict)
+          k = re.sub(flag, '', relaRiskName)
+          if k:
+              if k in tmpDict.keys():
+                    tmpDict[k] += value
+              else:
+                    tmpDict[k] = value
         else:
-            for index, data in enumerate([i for i in relaRiskName.split("\n") if i], 1):
-                kk = re.sub(r'\d|\.', '', data)
-                if kk:
-                    tmpDict[kk] = [re.sub(r'\d|\.', '', i) for i in relaSafeDesc.split("\n") if "{}.".format(index) in i]
-                    tmpList.append(tmpDict)
-    for i in set(tmpList):
-      print(i)
-      for k, v in i.items():
-          tDict = {}
-          tmp = twoList2(k, dict1)
-          tDict["RISK_CODE"] = tmp
-          tDict["RISK_NAME"] = k
-          tmp1 = twoList(v, dict2)
-          tDict["RELA_SAFE_CODE"] = tmp1
-          tmp2 = '|'.join([i for i in v])
-          tDict["RELA_SAFE_DESC"] = tmp2
-          tDict["ORG_CODE"] = orgcode
-          tDict["DR"] = 0
-          tDict["DATA_VERSION"] = 1
-          tDict["DATA_NO"] = '{}{}'.format(getCurDate(), tmp)
-          gList.append(tDict)
-    
+            keys = re.split(r"\s",relaRiskName)
+            for index, data in enumerate(keys, 1):
+              kk = re.sub(flag, '', data)
+              if kk:
+                kvalue = '|'.join([re.sub(flag, '', i) for i in re.split("\s", relaSafeDesc) if "{}.".format(index) in i]) + "|"
+                if kk in tmpDict.keys():
+                    tmpDict[kk] += kvalue
+                else:
+                    tmpDict[kk] = kvalue
+    for k,v in tmpDict.items():
+        returnDict[k] = list(set([i for i in v.split("|") if i]))
+    for k, v in returnDict.items():
+        tDict = {}
+        tDict["RISK_CODE"] = dict1[k]
+        tDict["RISK_NAME"] = k
+        tDict["RELA_SAFE_CODE"] = '|'.join([dict2[i] for i in v if i])
+        tDict["RELA_SAFE_DESC"] = '|'.join([i for i in v if i])
+        tDict["ORG_CODE"] = orgcode
+        tDict["DR"] = 0
+        tDict["DATA_VERSION"] = 1
+        tDict["DATA_NO"] = '{}{}'.format(getCurDate(), dict1[k])
+        gList.append(tDict)
+    return gList
 
-    return [dict(t) for t in set([tuple(d.items()) for d in gList])]
-
-
-# 扫描文件 检查文件格式
-def checkFileFormat(path):
-    fileList = scanDir(path)
-    for filename in fileList:
-        data = readExcel(filename)
-        gendata = fill(data)
-        if not gendata:
-            print('大哥呀文件格式好像有问题啊，检查下吧！！！ --->>{}'.format(filename))
 
 
 # 请求数据
@@ -253,8 +232,22 @@ def genFormat(orgcode, codedict):
     return tmpList
 
 
+# 检查文件格式是否满足需求
+def checkFileFormat(path):
+    fileList = scanDir(path)
+    for filename in fileList:
+        data = readExcel(filename)
+        for line in [i for i in data.get_rows()][:3]:
+            l = line[0].value
+            if "编码" in l or "code" in l or "导入须知" in l:
+                break
+            else:
+                print('大哥呀文件格式好像有问题啊，检查下吧！！！ --->>{}'.format(filename))
+                break
+
+
 def main():
-    path = r"C:\Users\shil002\Desktop\ticket_env\1508"
+    path = r"C:\Users\xx\Desktop\works\scripts"
     orgcode = fastdir(path)
     gendata = []
     fileList = scanDir(path)
@@ -272,7 +265,6 @@ def main():
     # 安全措施数据格式
     riskData = generateDictCode2(gddata, "relaRiskName", orgcode)
     safeData = generateDictCode2(gddata, "relaSafeDesc", orgcode)
-
     gdd = dictToJson(gddata, toolData, materielData, riskData, safeData)
 
     #   ===========================================最大的那个json===============================================
@@ -294,83 +286,78 @@ def main():
     #     time.sleep(0.5)
     #     break
 
-    '''
     #  ------------------------------1-------------------------------
-    for i in gdd:
-        print(post(r'http://127.0.0.1:8080/bd/jsa/template/save', json.dumps(i)))
+    
+    # for i in gdd:
+    #   print(post(r'http://127.0.0.1:8080/bd/jsa/template/save', json.dumps(i)))
+#  #  ------------------------------2-------------------------------
+    # for k,v in toolData.items():
+    #     toolJson = {
+    #         "boName":"BO_EU_DEF_TOOL",
+    #         "uid:":"admin",
+    #         "recordDatas": [
+    #           {"TOOL_CODE": v,
+    #           "TOOL_NAME":k,
+    #           "ORG_CODE":orgcode,
+    #           "DATA_VERSION":1,
+    #           "DR":0,
+    #           "DATA_NO": getCurDate() + v}
+    #         ]
+    #     }
+    #     print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(toolJson)))
 
- #  ------------------------------2-------------------------------
-    for k,v in toolData.items():
-        toolJson = {
-            "boName":"BO_EU_DEF_TOOL",
-            "uid:":"admin",
-            "recordDatas": [
-              {"TOOL_CODE": v,
-              "TOOL_NAME":k,
-              "ORG_CODE":orgcode,
-              "DATA_VERSION":1,
-              "DR":0,
-              "DATA_NO": getCurDate() + v}
-            ]
-        }
-        print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(toolJson)))
-
-     #  ------------------------------3-------------------------------
-    for k,v in materielData.items():
-        materielJson = {
-            "boName":"BO_EU_DEF_MATERIEL",
-            "uid:":"admin",
-            "recordDatas": [
-              {"MATERIEL_CODE": v,
-              "MATERIEL_NAME":k,
-              "ORG_CODE":orgcode,
-              "DATA_VERSION":1,
-              "DR":0,
-              "DATA_NO": getCurDate() + v}
-            ]
-        }
-        print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(materielJson)))
-    '''
+#      #  ------------------------------3-------------------------------
+    # for k,v in materielData.items():
+    #     materielJson = {
+    #         "boName":"BO_EU_DEF_MATERIEL",
+    #         "uid:":"admin",
+    #         "recordDatas": [
+    #           {"MATERIEL_CODE": v,
+    #           "MATERIEL_NAME":k,
+    #           "ORG_CODE":orgcode,
+    #           "DATA_VERSION":1,
+    #           "DR":0,
+    #           "DATA_NO": getCurDate() + v}
+    #         ]
+    #     }
+    #     print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(materielJson)))
+    
     #  ------------------------------4------------------------------- 
-    print(len(extracData(orgcode, gendata, riskData, safeData)))
+    # print(len(extracData(orgcode, gendata, riskData, safeData)))
+    # print( json.dumps(extracData(orgcode, gendata, riskData, safeData)))
     for i in extracData(orgcode, gendata, riskData, safeData):
         riskJson = {
             "boName":"BO_EU_DEF_RISK",
             "uid:":"admin",
             "recordDatas": [i]
         }
-        print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(riskJson)))
-        break
-    '''    
-  
+        print(riskJson)
+        # print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(riskJson)))
   #  ------------------------------5-------------------------------
-    for k,v in safeData.items():
-        safeJson = {
-            "boName":"BO_EU_DEF_SAFETHING",
-            "uid:":"admin",
-            "recordDatas": [
-              {"SAFE_CODE": v,
-              "SAFE_DESC":k,
-              "ORG_CODE":orgcode,
-              "DATA_VERSION":1,
-              "DR":0,
-              "DATA_NO": getCurDate() + v,
-            "BLN_IS_CONFIRM": 1,
-            "BLN_IS_DELETE": 1,
-            "BLN_IS_UPLOAD_FILE": 1,
-            "BLN_IS_PHOTOGRAPH": 1,
-            "BLN_IS_FILM_VIDEO": 1,
-            "BLN_IS_SIGN": 1}
-            ]
-        }
-        print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(safeJson)))
-'''
-
+    # for k,v in safeData.items():
+    #     safeJson = {
+    #         "boName":"BO_EU_DEF_SAFETHING",
+    #         "uid:":"admin",
+    #         "recordDatas": [
+    #           {"SAFE_CODE": v,
+    #           "SAFE_DESC":k,
+    #           "ORG_CODE":orgcode,
+    #           "DATA_VERSION":1,
+    #           "DR":0,
+    #           "DATA_NO": getCurDate() + v,
+    #         "BLN_IS_CONFIRM": 1,
+    #         "BLN_IS_DELETE": 1,
+    #         "BLN_IS_UPLOAD_FILE": 1,
+    #         "BLN_IS_PHOTOGRAPH": 1,
+    #         "BLN_IS_FILM_VIDEO": 1,
+    #         "BLN_IS_SIGN": 1}
+    #         ]
+    #     }
+    #     print(post(r'http://127.0.0.1:8080/bd/jsa/batch/save', json.dumps(safeJson)))
 
 if __name__ == "__main__":
     print(datetime.datetime.now())
-    # profile.run("main()")
-    # checkFileFormat(r"D:\learn\tmp\包化")
-    main()
+    checkFileFormat(r"C:\Users\xx\Desktop\1508")
+    # main()
     print(datetime.datetime.now())
  
