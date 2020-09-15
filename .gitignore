@@ -3,3 +3,5 @@
 .idea/scripts.iml
 .vscode/launch.json
 .vscode/settings.json
+.idea/other.xml
+__pycache__/*.pyc

@@ -1,31 +1,16 @@
-import time
+'''
+Author: xianxiaoyin
+LastEditors: xianxiaoyin
+Descripttion: 
+Date: 2020-09-15 21:44:35
+LastEditTime: 2020-09-15 21:45:01
+'''
+# coding utf-8
+
 import logging
 import logging.config
 
-logging.config.fileConfig('logging.conf')
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
 
-# create logger
-logger = logging.getLogger("consoleExample")
-
-
-def auto_add_timestamp(logger):
-    def wrapper(func):
-        def decorate(*args, **kw):
-            start = time.time()
-            logger.info("function: {} starting".format(func.__name__))
-            func(*args, **kw)
-            logger.info("function: {} end , time: {}".format(func.__name__, time.time()-start))
-        return decorate
-    return wrapper
-
-
-
-@auto_add_timestamp(logger)
-def MyAdd(x, y, logger):
-    logger.info("{} + {} = {}".format(x, y, x+y))
-    time.sleep(10)
-    return x+y
-
-
-if __name__ == '__main__':
-    MyAdd(1, 11, logger)
+logger.info('1111111111')
