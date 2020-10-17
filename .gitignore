@@ -1,11 +1,5 @@
-.idea/misc.xml
-.idea/misc.xml
-.idea/scripts.iml
-.vscode/launch.json
-.vscode/settings.json
-.idea/misc.xml
-.idea/scripts.iml
-.idea/misc.xml
-.idea/scripts.iml
-.idea/misc.xml
-.idea/scripts.iml
+.idea/*
+.vscode/*
+__pycache__/*
+
+ 
