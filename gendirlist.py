@@ -3,7 +3,7 @@ Author: xianxiaoyin
 LastEditors: xianxiaoyin
 Descripttion: 
 Date: 2020-10-09 14:49:34
-LastEditTime: 2020-10-09 15:51:44
+LastEditTime: 2020-10-20 09:36:30
 '''
 # coding:utf-8
 
@@ -11,11 +11,16 @@ LastEditTime: 2020-10-09 15:51:44
 1.列出当前目录下的所有目录
 2.判断目录中是否存在指定目录
 3.存在写入success.csv
-4.不存在写入fail.csv
 '''
 import os
+import datetime
+import shutil
+import logging
+import logging.config
 
 
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
 
 def judge(path):
     success_list = []
@@ -30,13 +35,41 @@ def judge(path):
                 fail_list.append(dirs)
     return success_list, fail_list
 
-def writeCSV(filename, data):
-    data = set(data)
+def copydir(sdir, ddir):
+    if not os.path.exists(ddir):
+        shutil.copytree(sdir, ddir)
+
+def copyfile(sdir, ddir, filename):
+    year = datetime.datetime.now().year
+    for files in os.listdir(sdir):
+        if os.path.isfile(os.path.join(sdir, files)) and str(year) in files:
+            sfile = os.path.join(sdir, files)
+            filename = '{}_{}'.format(filename, files)
+            shutil.copyfile(sfile, os.path.join(ddir, filename))
+
+
+def writeCSV(filename, success, fail):
+    success = set(success)
+    fail = set(fail)
     with open(filename, "w") as f:
-        for i in data:
-            f.write("{}\n".format(i))    
-            
+        for i in success:
+            f.write("{},success\n".format(i))    
+
 if __name__ == '__main__':
-    s,f = judge(r"Y:\log\20ww39r01\bkc_sop\bkc_sop-bkc20ww39r01-ts20WW39Thu_142627")
-    writeCSV("s.csv", s)
-    writeCSV("f.csv", f)
+    dirname = os.getcwd()
+    week = dirname.split(os.sep)[3]
+    newdirname = r'C:\sop\sop_to_manual\{}\execution'.format(week)
+   
+    if not os.path.exists(newdirname):
+        os.mkdir(newdirname)
+    
+    s,f = judge(dirname)
+    writeCSV("s.csv", s, f)
+    logger.info("------------------- copying -----------")
+    for i in s:
+        sdir = os.path.join(dirname, i)
+        ddir = os.path.join(newdirname, i)
+        logger.info("copy {}    to   {}  ".format(sdir, ddir))
+        copydir(sdir, ddir)
+        copyfile(sdir, newdirname, i)
+        
