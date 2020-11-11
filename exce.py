@@ -3,7 +3,7 @@ Author: xianxiaoyin
 LastEditors: xianxiaoyin
 Descripttion: 先将xls文件转成xlsx的文件，然后格式化数据，然后再将xlsx文件转成xls
 Date: 2020-11-09 22:30:26
-LastEditTime: 2020-11-11 16:54:05
+LastEditTime: 2020-11-11 22:01:03
 '''
 import os
 import sys
@@ -13,8 +13,6 @@ import win32com.client as win32
 import zipfile
 
 # 解压zip
-
-
 def unzip(filename):
     _, suffix = os.path.splitext(filename)
     if suffix == ".zip":
@@ -70,15 +68,17 @@ def xlsToxlsx(filename, formats):
 def checkDataFormat(ws):
     cell_list = []
     row_list = []
+
+    tag = ["yyyy/m/d;@", "[$-F800]dddd\,\ mmmm\ dd\,\ yyyy", "mm-dd-yy", 'm"月"d"日";@', 'yyyy"年"m"月"d"日";@']
     for row in ws.rows:
         for cell in row:
+            # print(cell.value)
+            # print(cell.number_format)
             # if cell.value and cell.value == "1234567890":
             if cell.value and int(cell.font.sz) > 13:
                 row_list.append(cell.row)
             if cell.value:
-                if cell.number_format == r"[$-F800]dddd\,\ mmmm\ dd\,\ yyyy" or cell.number_format == r"mm-dd-yy":
-                    # print(cell.value)
-                    # print(cell.number_format)
+                if cell.number_format in tag:
                     # if cell.value and cell.number_format != "General":
                     cell_list.append(get_column_letter(cell.column))
     return set(cell_list), set(row_list)
@@ -94,7 +94,7 @@ def formatExcel(filename, filename2, height=13, width=15):
         cdf, cdf2 = checkDataFormat(ws)
         for i in range(1, ws.max_row+1):
             if i in cdf2:
-                ws.row_dimensions[i].height = height+3
+                ws.row_dimensions[i].height = height+4
             else:
                 ws.row_dimensions[i].height = height
 
@@ -117,8 +117,8 @@ def main():
         xlsxFileName = "{}x".format(filename)
         path, fname = os.path.split(xlsxFileName)
         tmpPath = path.split(os.sep)
-        # newPath = os.path.join(os.getcwd(), "new")
-        tmpPath.insert(-2, "new")
+        index =  len(tmpPath) - len(os.getcwd().split(os.sep))
+        tmpPath.insert(-index, "new")
         newPath = str(os.sep).join(tmpPath)
         if not os.path.exists(newPath):
             os.makedirs(newPath)
