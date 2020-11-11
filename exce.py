@@ -3,7 +3,7 @@ Author: xianxiaoyin
 LastEditors: xianxiaoyin
 Descripttion: 先将xls文件转成xlsx的文件，然后格式化数据，然后再将xlsx文件转成xls
 Date: 2020-11-09 22:30:26
-LastEditTime: 2020-11-10 22:38:55
+LastEditTime: 2020-11-11 16:54:05
 '''
 import os
 import sys
@@ -68,28 +68,42 @@ def xlsToxlsx(filename, formats):
 
 # 检查所有的单元格，如果存在时间的单元格记录对应的列
 def checkDataFormat(ws):
-    tmp_list = []
+    cell_list = []
+    row_list = []
     for row in ws.rows:
         for cell in row:
-            if cell.value and cell.number_format == "[$-F800]dddd\,\ mmmm\ dd\,\ yyyy":
-            # if cell.value and cell.number_format != "General":
-                tmp_list.append(get_column_letter(cell.column))
-    return set(tmp_list)
+            # if cell.value and cell.value == "1234567890":
+            if cell.value and int(cell.font.sz) > 13:
+                row_list.append(cell.row)
+            if cell.value:
+                if cell.number_format == r"[$-F800]dddd\,\ mmmm\ dd\,\ yyyy" or cell.number_format == r"mm-dd-yy":
+                    # print(cell.value)
+                    # print(cell.number_format)
+                    # if cell.value and cell.number_format != "General":
+                    cell_list.append(get_column_letter(cell.column))
+    return set(cell_list), set(row_list)
 
 
 # 自动给excel表格修改行高
 # 1.xlsx 的文件修改完成之后变成1_new.xlsx
-def formatExcel(filename, filename2, height=10, width=11):
+def formatExcel(filename, filename2, height=13, width=15):
     wb = load_workbook(filename)
     for index, _ in enumerate(wb.sheetnames):
         ws = wb[wb.sheetnames[index]]
-        cdf = checkDataFormat(ws)
+
+        cdf, cdf2 = checkDataFormat(ws)
         for i in range(1, ws.max_row+1):
-            ws.row_dimensions[i].height = height
+            if i in cdf2:
+                ws.row_dimensions[i].height = height+3
+            else:
+                ws.row_dimensions[i].height = height
+
         for j in range(1, ws.max_column+1):
-            for k in cdf:
-                ws.column_dimensions[k].width = 12.0
-            ws.column_dimensions[get_column_letter(j)].width = 10.0
+            if get_column_letter(j) in cdf:
+                ws.column_dimensions[get_column_letter(j)].width = width
+            else:
+                ws.column_dimensions[get_column_letter(j)].width = width-3
+
     wb.save(filename2)
 
 
@@ -103,12 +117,13 @@ def main():
         xlsxFileName = "{}x".format(filename)
         path, fname = os.path.split(xlsxFileName)
         tmpPath = path.split(os.sep)
-        tmpPath.insert(3, "new")
+        # newPath = os.path.join(os.getcwd(), "new")
+        tmpPath.insert(-2, "new")
         newPath = str(os.sep).join(tmpPath)
         if not os.path.exists(newPath):
             os.makedirs(newPath)
         newXlsxFfileName = os.path.join(newPath, fname)
-        formatExcel(xlsxFileName, newXlsxFfileName, 10)
+        formatExcel(xlsxFileName, newXlsxFfileName, 12)
 
 
 if __name__ == '__main__':
