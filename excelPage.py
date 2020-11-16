@@ -1,16 +1,18 @@
 '''
 Author: xianxiaoyin
 LastEditors: xianxiaoyin
-Descripttion: 先将xls文件转成xlsx的文件，然后格式化数据，然后再将xlsx文件转成xls [设置行高，宽度之类]
-Date: 2020-11-09 22:30:26
-LastEditTime: 2020-11-16 21:13:27
+Descripttion: 设置打印属性
+    计算表格行和列数量，如果行大于列并且大于一定行数，就把表格纵向设置，否则就横向放置
+Date: 2020-10-24 10:14:59
+LastEditTime: 2020-11-16 21:14:30
+
 '''
+import openpyxl
+from openpyxl.worksheet.page import PrintPageSetup
 import os
 import sys
-from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter, column_index_from_string
-import win32com.client as win32
 import zipfile
+import win32com.client as win32
 
 # 解压zip
 def unzip(filename):
@@ -25,7 +27,6 @@ def unzip(filename):
 
 def changeFilename(path):
     for filename in os.listdir(path):
-        # if os.path.isdir(os.path.join(path, filename)):
         try:
             zip_file = filename.encode('cp437').decode('gbk')
         except:
@@ -50,7 +51,6 @@ def get_files(path, file_list=[]):
 
     return file_list
 
-
 # 转换文件格式
 def xlsToxlsx(filename, formats):
     if formats == 51:  # .xls-->.xlsx
@@ -63,48 +63,25 @@ def xlsToxlsx(filename, formats):
     wb.Close()
     excel.Application.Quit()
 
-
-# 检查所有的单元格，如果存在时间的单元格记录对应的列
-def checkDataFormat(ws):
-    cell_list = []
-    row_list = []
-
-    tag = ["yyyy/m/d;@", "[$-F800]dddd\,\ mmmm\ dd\,\ yyyy", "mm-dd-yy", 'm"月"d"日";@', 'yyyy"年"m"月"d"日";@']
-    for row in ws.rows:
-        for cell in row:
-            # print(cell.value)
-            # print(cell.number_format)
-            # if cell.value and cell.value == "1234567890":
-            if cell.value and int(cell.font.sz) > 13:
-                row_list.append(cell.row)
-            if cell.value:
-                if cell.number_format in tag:
-                    # if cell.value and cell.number_format != "General":
-                    cell_list.append(get_column_letter(cell.column))
-    return set(cell_list), set(row_list)
+def MaxRows(ws, line=50):
+    if ws.max_row > ws.max_column and ws.max_row > line:
+        return True
 
 
-# 自动给excel表格修改行高
-# 1.xlsx 的文件修改完成之后变成1_new.xlsx
-def formatExcel(filename, filename2, height=13, width=15):
-    wb = load_workbook(filename)
+def formatPage(fileName, newFileName):
+    wb = openpyxl.load_workbook(fileName)
     for index, _ in enumerate(wb.sheetnames):
         ws = wb[wb.sheetnames[index]]
-
-        cdf, cdf2 = checkDataFormat(ws)
-        for i in range(1, ws.max_row+1):
-            if i in cdf2:
-                ws.row_dimensions[i].height = height+4
-            else:
-                ws.row_dimensions[i].height = height
-
-        for j in range(1, ws.max_column+1):
-            if get_column_letter(j) in cdf:
-                ws.column_dimensions[get_column_letter(j)].width = width
-            else:
-                ws.column_dimensions[get_column_letter(j)].width = width-3
-
-    wb.save(filename2)
+        # 设置页面
+        if MaxRows(ws):
+            ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT     # 页面纵向
+        else:
+            ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE    # 页面横向
+        ws.page_setup.fitToHeight = True                            # 自适应高度
+        ws.sheet_properties.pageSetUpPr.fitToPage = True            # 自适应页面宽度（将表格放在一页）
+        ws.print_options.horizontalCentered = True                  # 水平居中
+        ws.print_options.verticalCentered = True                    # 垂直居中
+    wb.save(newFileName)
 
 
 def main():
@@ -113,7 +90,7 @@ def main():
         unzip(filename_zip)
     changeFilename(os.getcwd())
     for filename in get_files(os.getcwd()):
-        xlsToxlsx(filename, 51)
+        xlsToxlsx(filename, 51) 
         xlsxFileName = "{}x".format(filename)
         path, fname = os.path.split(xlsxFileName)
         tmpPath = path.split(os.sep)
@@ -123,7 +100,7 @@ def main():
         if not os.path.exists(newPath):
             os.makedirs(newPath)
         newXlsxFfileName = os.path.join(newPath, fname)
-        formatExcel(xlsxFileName, newXlsxFfileName, 12)
+        formatPage(xlsxFileName, newXlsxFfileName)
 
 
 if __name__ == '__main__':
