@@ -20,6 +20,5 @@ loggingtest.py   使用logging模块的 简单dome
 
 pgtest.py  测试数据库多线程的脚本
 
-excelFormat.py  帮兄弟做的处理excel数据 
+excelFormat.py  处理excel数据 
 
-mhxy.py  想做一个游戏自动任务的脚本===>>> 还在查找资料中

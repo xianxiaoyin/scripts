@@ -1,9 +1,9 @@
 '''
 Author: xianxiaoyin
-LastEditors: xianxiaoyin
+LastEditors: xianxiaoyin 525607894@qq.com
 Descripttion: 
 Date: 2020-09-21 09:14:53
-LastEditTime: 2020-09-21 10:38:08
+LastEditTime: 2023-03-04 17:23:43
 '''
 # from __future__ import unicode_literals        #python3.x以上版本把改行注释即可
 from threading import Timer
@@ -12,7 +12,7 @@ import requests
 import json
 '''
 bot = Bot(cache_path=True)
-# bot = Bot(console_qr=2,cache_path="botoo.pkl")   　　　　#这里的二维码是用像素的形式打印出来！，如果你在windows环境上运行，替换为  bot=Bot()
+# bot = Bot(console_qr=2,cache_path="botoo.pkl")   # 这里的二维码是用像素的形式打印出来！，如果你在windows环境上运行，替换为  bot=Bot()
 
 
 def get_news1():
@@ -26,7 +26,7 @@ def get_news1():
 
 def send_news():
     try:
-        my_friend = bot.friends().search(u'周思维')[0]  # 你朋友的微信名称，可以是备注，不是微信帐号。
+        my_friend = bot.friends().search(u'用户名')[0]  # 你朋友的微信名称，可以是备注，不是微信帐号。
         my_friend.send(get_news1()[0])
         my_friend.send(u"测试测试，不要回复")
         t = Timer(10, send_news)  # 定时器 10秒钟执行一次
@@ -41,20 +41,22 @@ if __name__ == "__main__":
 
 '''
 
-bot=Bot(cache_path=True)
+bot = Bot(cache_path=True)
 
-@bot.register() #接收从指定群发来的消息，发送者即recv_msg.sender为组
+
+@bot.register()  #接收从指定群发来的消息，发送者即recv_msg.sender为组
 def recv_send_msg(recv_msg):
-    print('收到的消息：',recv_msg.text)
-    print('收到的消息：',recv_msg.sender.name)
-    msg = '自动回复 {}'.format(recv_msg.text)
+    print('收到的消息：', recv_msg.text)
+    print('收到的消息：', recv_msg.sender.name)
+    msg = f'自动回复 {recv_msg.text}'
     print("这是返回信息", msg)
     return msg
     # 对指定人自动回复消息
-    # if recv_msg.sender.name == u"周思维":
+    # if recv_msg.sender.name == u"用户名":
     #     msg = '{} ?'.format(recv_msg.text)
     #     print("这是返回信息", msg)
     #     return msg
+
 
 if __name__ == "__main__":
     embed()
